@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Predíď vyhoreniu - Interaktívna aktivita</title>
+    <style>
+        /* CSS RESET & ZÁKLADNÉ NASTAVENIA */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: #0d0d12;
+            color: #ffffff;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        #app-container {
+            width: 100%;
+            max-width: 600px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* TYPOGRAFIA */
+        h1, h2, h3 {
+            text-align: center;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        p {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            margin-bottom: 20px;
+            text-align: center;
+            color: #e0e0e0;
+        }
+
+        /* OBRAZOVKY */
+        .screen {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            animation: fadeIn 0.4s ease-in-out;
+        }
+
+        .screen.active {
+            display: flex;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* TLAČIDLÁ */
+        .btn {
+            width: 100%;
+            padding: 16px 20px;
+            margin-bottom: 12px;
+            font-size: 1.05rem;
+            background-color: #1a1a24;
+            color: #ffffff;
+            border: 2px solid #2a2a35;
+            border-radius: 12px;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            line-height: 1.4;
+        }
+
+        .btn:hover, .btn:active {
+            background-color: #2a2a35;
+            border-color: #4a4a5a;
+            transform: translateY(-2px);
+        }
+
+        .btn-primary {
+            background-color: #0066ff;
+            border-color: #005ce6;
+            text-align: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.15rem;
+            padding: 18px;
+        }
+
+        .btn-primary:hover, .btn-primary:active {
+            background-color: #005ce6;
+            border-color: #004ac0;
+        }
+
+        /* HERNÁ ČASŤ */
+        #timer-container {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #ffaa00;
+            margin-bottom: 15px;
+            text-align: center;
+            background: #1a1a24;
+            padding: 10px 30px;
+            border-radius: 20px;
+            border: 1px solid #2a2a35;
+        }
+
+        #question-text {
+            font-size: 1.2rem;
+            margin-bottom: 25px;
+            text-align: left;
+            background: #15151e;
+            padding: 22px;
+            border-radius: 12px;
+            border-left: 5px solid #0066ff;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        #options-container {
+            width: 100%;
+        }
+
+        /* VÝSLEDKY & ŠKÁLA */
+        #result-text {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-top: 5px;
+            text-align: center;
+            line-height: 1.5;
+            min-height: 90px;
+            padding: 0 10px;
+        }
+
+        .scale-container {
+            position: relative;
+            width: 100%;
+            height: 20px;
+            background: linear-gradient(to right, #00cc66 0%, #ffcc00 50%, #ff3333 100%);
+            border-radius: 10px;
+            margin: 20px 0 10px 0;
+            box-shadow: 0 0 15px rgba(0,0,0,0.5);
+        }
+
+        .scale-pointer {
+            position: absolute;
+            top: -6px;
+            width: 8px;
+            height: 32px;
+            background-color: #ffffff;
+            border: 2px solid #111;
+            border-radius: 4px;
+            transform: translateX(-50%);
+            transition: left 1s ease-in-out;
+            left: 50%;
+            box-shadow: 0 0 5px rgba(0,0,0,0.5);
+        }
+
+        .scale-labels {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            font-size: 0.95rem;
+            font-weight: bold;
+            color: #999;
+            margin-bottom: 20px;
+        }
+
+        /* ==================================================
+           VEKTOROVÁ ZÁPALKA A TEARDROP PLAMEŇ (CSS)
+           ================================================== */
+        #graphic-container {
+            margin: 0;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            padding-top: 20px;
+        }
+
+        .match-scene {
+            position: relative;
+            width: 160px;
+            height: 320px;
+        }
+
+        /* DREVO ZÁPALKY */
+        .stick {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 12px;
+            height: 180px;
+            background: linear-gradient(to right, #4a2e1b 0%, #c49a6c 30%, #a67b51 70%, #3a2213 100%);
+            border-radius: 3px;
+            box-shadow: 2px 2px 10px rgba(0,0,0,0.5);
+            overflow: hidden;
+        }
+
+        /* ZHORENÉ DREVO */
+        .stick-burnt {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 0px;
+            background: linear-gradient(to right, #0a0a0a 0%, #2a2a2a 30%, #1a1a1a 70%, #000000 100%);
+            transition: height 1s ease-in-out;
+        }
+        .stick-burnt::after {
+            content: "";
+            position: absolute;
+            bottom: -8px;
+            left: 0;
+            width: 100%;
+            height: 15px;
+            background: inherit;
+            filter: blur(3px);
+        }
+
+        /* HLAVIČKA ZÁPALKY */
+        .head {
+            position: absolute;
+            bottom: 178px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 22px;
+            height: 30px;
+            background: radial-gradient(circle at 7px 7px, #ff6b6b 0%, #cc0000 50%, #660000 100%);
+            border-radius: 12px 12px 9px 9px;
+            box-shadow: inset -2px -3px 5px rgba(0,0,0,0.6), 2px 4px 8px rgba(0,0,0,0.5);
+            transition: bottom 1s ease-in-out, background 1s ease-in-out;
+            z-index: 2;
+        }
+
+        /* ZHORENÁ HLAVIČKA */
+        .head.is-burnt {
+            background: radial-gradient(circle at 7px 7px, #555555 0%, #1a1a1a 50%, #000000 100%);
+        }
+
+        /* KONTAJNER PRE PLAMEŇ A DYM - PRESNE ZAROVNANÝ S HLAVIČKOU */
+        .fx-container {
+            position: absolute;
+            bottom: 168px; /* Presne v strede hlavičky zápalky (178px + 10px) */
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100px;
+            height: 150px;
+            z-index: 3;
+            transition: bottom 1s ease-in-out;
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            pointer-events: none;
+        }
+
+        /* TEARDROP PLAMEŇ */
+        .fire-wrapper {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            transform-origin: bottom center;
+            transition: transform 1s ease-in-out, opacity 0.5s;
+        }
+
+        .flame-layer {
+            position: absolute;
+            border-radius: 50% 0 50% 50%;
+            transform: rotate(-45deg);
+            transform-origin: center center;
+            bottom: 0;
+        }
+
+        .flame-outer {
+            width: 50px;
+            height: 50px;
+            background: #ff3300;
+            box-shadow: 0 0 25px 10px rgba(255, 50, 0, 0.5);
+            bottom: 15px;
+            animation: flickerShape 0.5s ease-in-out infinite alternate;
+        }
+
+        .flame-inner {
+            width: 34px;
+            height: 34px;
+            background: #ffcc00;
+            box-shadow: 0 0 15px rgba(255, 204, 0, 0.8);
+            bottom: 18px;
+            animation: flickerShape 0.4s ease-in-out infinite alternate-reverse;
+        }
+
+        .flame-core {
+            width: 18px;
+            height: 18px;
+            background: #ffffff;
+            box-shadow: 0 0 10px #ffffff;
+            bottom: 22px;
+        }
+
+        .flame-base {
+            position: absolute;
+            width: 22px;
+            height: 12px;
+            background: #0088ff;
+            border-radius: 50%;
+            bottom: 5px;
+            filter: blur(2px);
+            opacity: 0.8;
+        }
+
+        /* DYMOVÉ ČASTICE */
+        .smoke-wrapper {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 40px;
+            height: 150px;
+            display: none;
+            opacity: 0;
+            transition: opacity 1s;
+        }
+
+        .smoke-particle {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            width: 15px;
+            height: 15px;
+            background: rgba(200, 200, 200, 0.4);
+            border-radius: 50%;
+            filter: blur(6px);
+            opacity: 0;
+        }
+
+        .sp-1 { animation: rise 3s infinite linear; animation-delay: 0s; }
+        .sp-2 { animation: rise 3s infinite linear; animation-delay: 1s; }
+        .sp-3 { animation: rise 3s infinite linear; animation-delay: 2s; }
+
+        /* ANIMÁCIE */
+        @keyframes flickerShape {
+            0% { transform: rotate(-45deg) scale(1, 1); }
+            50% { transform: rotate(-44deg) scale(1.05, 0.95); }
+            100% { transform: rotate(-46deg) scale(0.95, 1.05); }
+        }
+
+        .fire-wrapper.aggressive .flame-outer {
+            animation: flickerAggressive 0.15s ease-in-out infinite alternate;
+        }
+        .fire-wrapper.aggressive .flame-inner {
+            animation: flickerAggressive 0.1s ease-in-out infinite alternate-reverse;
+        }
+
+        @keyframes flickerAggressive {
+            0% { transform: rotate(-45deg) scale(1, 1); filter: brightness(1); }
+            33% { transform: rotate(-42deg) scale(1.1, 0.9); filter: brightness(1.2); }
+            66% { transform: rotate(-48deg) scale(0.9, 1.15); filter: brightness(0.9); }
+            100% { transform: rotate(-45deg) scale(1.05, 1.05); filter: brightness(1.1); }
+        }
+
+        @keyframes rise {
+            0% { transform: translate(-50%, 0) scale(1); opacity: 0; }
+            20% { opacity: 1; }
+            80% { opacity: 0.5; }
+            100% { transform: translate(-50%, -100px) scale(3); opacity: 0; }
+        }
+
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+
+    <!-- 1. ÚVODNÁ OBRAZOVKA -->
+    <div id="screen-start" class="screen active">
+        <h1>Syndróm vyhorenia</h1>
+        <p>Vži sa do roly liečebného pedagóga v ambulancii a preži s ním jeden deň. Tvojím cieľom je robiť rozhodnutia tak, aby si predišiel/predišla vyhoreniu.</p>
+        <p>Na každú odpoveď máš <strong>35 sekúnd</strong>.</p>
+        <button class="btn btn-primary" onclick="startGame()">Spustiť deň</button>
+    </div>
+
+    <!-- 2. HERNÁ OBRAZOVKA -->
+    <div id="screen-game" class="screen">
+        <div id="timer-container">Čas: <span id="time-left">35</span>s</div>
+        <div id="question-text">Text otázky</div>
+        <div id="options-container"></div>
+    </div>
+
+    <!-- 3. VÝSLEDKOVÁ OBRAZOVKA -->
+    <div id="screen-result" class="screen">
+        <h2>Koniec dňa</h2>
+        
+        <!-- VEKTOROVÁ ZÁPALKA A EFEKTY -->
+        <div id="graphic-container">
+            <div class="match-scene">
+                <!-- Drevo -->
+                <div class="stick">
+                    <div id="stick-burnt" class="stick-burnt"></div>
+                </div>
+                
+                <!-- Hlavička -->
+                <div id="match-head" class="head"></div>
+                
+                <!-- FX Kontajner (Plameň / Dym) -->
+                <div id="fx-container" class="fx-container">
+                    
+                    <!-- Častice Dymu -->
+                    <div id="smoke-wrapper" class="smoke-wrapper">
+                        <div class="smoke-particle sp-1"></div>
+                        <div class="smoke-particle sp-2"></div>
+                        <div class="smoke-particle sp-3"></div>
+                    </div>
+
+                    <!-- Plameň -->
+                    <div id="fire-wrapper" class="fire-wrapper">
+                        <div class="flame-base"></div>
+                        <div class="flame-layer flame-outer"></div>
+                        <div class="flame-layer flame-inner"></div>
+                        <div class="flame-layer flame-core"></div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <p id="result-text">Vyhodnocujem...</p>
+
+        <div class="scale-container">
+            <div id="scale-pointer" class="scale-pointer"></div>
+        </div>
+        <div class="scale-labels">
+            <span>Pohoda</span>
+            <span>Neutrál</span>
+            <span>Vyhorenie</span>
+        </div>
+
+        <button class="btn btn-primary" onclick="location.reload()">Skúsiť znova</button>
+    </div>
+
+</div>
+
+<script>
+    // DÁTA OTÁZOK
+    const questions = [
+        { text: "1. Včera večer si išiel/išla neskoro spať. Práca začína o 7 ráno. Na nevyhnutné nachystanie sa (raňajky, hygiena, pobalenie sa) potrebuješ aspoň 30 minút. Cesta ti trvá tiež 30 minút. Kedy vstaneš?", options: [{ text: "A: 6:00", weight: 0 }, { text: "B: 6:30", weight: 1 }, { text: "C: 5:50", weight: -1 }, { text: "D: 5:00", weight: 0.2 }] },
+        { text: "2. Pozrieš si diár a zistíš, že ťa čaká náročný deň. Čo urobíš?", options: [{ text: "A: Poviem si, že deň nejako zvládnem a pokračujem podľa plánu.", weight: 0 }, { text: "B: Začnem premýšľať, čo všetko musím stihnúť, snažím sa pracovať čo najrýchlejšie už od rána.", weight: 0.5 }, { text: "C: Pridám si ešte ďalšie úlohy aby som mal/a na konci dňa všetko hotové.", weight: 0.8 }, { text: "D: Určím si priority a pozriem sa, kde si môžem nechať priestor na pauzu.", weight: -0.8 }] },
+        { text: "3. Ráno si robíš čaj. Aký si dáš?", options: [{ text: "A: čierny", weight: 0 }, { text: "B: zelený", weight: 0 }, { text: "C: ovocný", weight: 0 }, { text: "D: bylinkový", weight: 0 }] },
+        { text: "4. V práci ma privíta nadriadený s informáciou, že o 10 minút začína porada. Aké sú moje ďalšie kroky? (Potrebujem sa pripraviť na sedenie s klientom po porade.)", options: [{ text: "A: Niečo si prichystám, ale prídem na poradu načas.", weight: -1 }, { text: "B: Nič si neprichystám. Radšej si dám kávu.", weight: -0.3 }, { text: "C: Prichystám si všetko na sedenie, ale na poradu prídem neskoro.", weight: 0.1 }, { text: "D: Po ceste sa zarozprávam s kolegyňou, nič si neprichystám a ideme spolu na poradu.", weight: 0.1 }] },
+        { text: "5. Klient prichádza rozrušený a potrebuje viac času než je stanovené. Ako zareaguješ?", options: [{ text: "A: Plne sa venujem klientovi v rámci jeho času, ale uvedomujem si, že aj ja potrebujem čas na spracovanie.", weight: -0.5 }, { text: "B: Pravidelne zostávam s klientmi výrazne dlhšie, pretože ich nechcem nechať odísť pokiaľ nie sú v poriadku.", weight: 1 }, { text: "C: Predĺžim stretnutie o pár minút a upravím si ďalší program.", weight: 0 }, { text: "D: Predĺžim stretnutie aj keď viem, že tým prídem o prestávku.", weight: 0.5 }] },
+        { text: "6. Mám medzeru medzi sedeniami. Ako ju vyplním?", options: [{ text: "A: Urobím potrebné zápisy zo stretnutia a oddýchnem si.", weight: -0.5 }, { text: "B: Dokončím celý zápis stretnutia a pripravím si pomôcky na ďalšie stretnutie.", weight: 0 }, { text: "C: Využijem čas a urobím si prácu dopredu aby som si nebral/a prácu domov.", weight: 0.5 }, { text: "D: Oddýchnem si. Zápisy zo stretnutí si urobím po práci.", weight: 0.1 }] },
+        { text: "7. Počas prestávky si všimneš, že na stole leží modré pero, ktoré ti nepatrí. Čo spravíš?", options: [{ text: "A: Položím ho k ostatným perám.", weight: 0 }, { text: "B: Nechám ho na stole.", weight: 0 }, { text: "C: Dám si ho do tašky.", weight: 0 }, { text: "D: Položím ho na chodbu do čakárne.", weight: 0 }] },
+        { text: "8. Kolegyňa ťa požiada, či by si za ňu nezobral/a ešte jedno stretnutie dnes.", options: [{ text: "A: Zoberiem stretnutie aj napriek tomu, že som unavený/á.", weight: 0.9 }, { text: "B: Spýtam sa či by sa stretnutie nedalo presunúť a zoberiem ho zajtra, kedy mám už plný deň.", weight: 0.6 }, { text: "C: Vysvetlím jej, že aktuálne nevládzem a nájdem jej náhradu.", weight: -0.4 }, { text: "D: Vysvetlím jej, že aktuálne nevládzem a požiadam ju aby sa spýtala niekoho iného.", weight: -0.8 }] },
+        { text: "9. Cestou domov stále premýšľaš o klientoch a o tom čo ťa čaká.", options: [{ text: "A: Chvíľu sa pozastavím a pokúsim sa venovať iným veciam.", weight: -0.2 }, { text: "B: Doma sa vrátim k práci aby som sa pripravila na všetko, čo ma čaká.", weight: 0.9 }, { text: "C: V hlave si prehrávam rozhovory z dnešných stretnutí a pripravujem sa tak na budúce stretnutia.", weight: 0.6 }, { text: "D: Uvedomím si, že si potrebujem oddýchnuť a pustím si hudbu/vnímam okolie počas prechádzky.", weight: -0.8 }] },
+        { text: "10. V posledných týždňoch si všimneš, že reaguješ podráždene, si viac unavený/á a práca ťa menej teší. Čo urobíš?", options: [{ text: "A: \"Je to len náročné obdobie. Vydržím.\"", weight: 0.5 }, { text: "B: Začnem sa porovnávať s kolegami a vyčítam si, že sa málo snažím/som neschopný/á.", weight: 1 }, { text: "C: Beriem tieto signály vážne, zamyslím sa nad svojimi hranicami, vyhľadám pomoc.", weight: -1 }, { text: "D: Upravím svoje návyky ako spánok, oddych a pracovné hranice a začnem sledovať svoj stav.", weight: -0.5 }] },
+        { text: "11. Vieš, že tvoj pracovný režim je dlhodobo neudržateľný. Čo s tým spravíš?", options: [{ text: "A: Budem pokračovať ako doteraz. Klienti ma potrebujú. Nemám na zmenu čas.", weight: 1 }, { text: "B: Otvorene pomenujem problém, vyhľadám podporu a budem hľadať zmeny v organizácii práce.", weight: -1 }, { text: "C: Počkám si, či sa situácia zlepší, keď bude menej práce.", weight: 0.2 }, { text: "D: Začnem malými zmenami vo svojom režime a stanovím si hranice, ktoré dokážem dodržať.", weight: -0.5 }, { text: "E: Rozhodnem sa, že aktuálne ťažkosti mi len posilňujú odolnosť a preto signály preťaženia ignorujem.", weight: 0.8 }] }
+    ];
+
+    let currentQuestionIndex = 0;
+    let totalScore = 0;
+    let timerInterval;
+    const TIME_LIMIT = 35;
+    let timeLeft = TIME_LIMIT;
+
+    const MAX_POS_SCORE = 7.2;
+    const MAX_NEG_SCORE = -7.4;
+
+    function showScreen(screenId) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById(screenId).classList.add('active');
+    }
+
+    function startGame() {
+        currentQuestionIndex = 0;
+        totalScore = 0;
+        showScreen('screen-game');
+        loadQuestion();
+    }
+
+    function loadQuestion() {
+        if (currentQuestionIndex >= questions.length) {
+            endGame();
+            return;
+        }
+        const q = questions[currentQuestionIndex];
+        document.getElementById('question-text').innerText = q.text;
+        
+        const optionsContainer = document.getElementById('options-container');
+        optionsContainer.innerHTML = '';
+
+        q.options.forEach(opt => {
+            const btn = document.createElement('button');
+            btn.className = 'btn';
+            btn.innerText = opt.text;
+            btn.onclick = () => handleAnswer(opt.weight);
+            optionsContainer.appendChild(btn);
+        });
+
+        startTimer();
+    }
+
+    function startTimer() {
+        clearInterval(timerInterval);
+        timeLeft = TIME_LIMIT;
+        document.getElementById('time-left').innerText = timeLeft;
+
+        timerInterval = setInterval(() => {
+            timeLeft--;
+            document.getElementById('time-left').innerText = timeLeft;
+            if (timeLeft <= 0) {
+                clearInterval(timerInterval);
+                handleAnswer(0);
+            }
+        }, 1000);
+    }
+
+    function handleAnswer(weight) {
+        clearInterval(timerInterval);
+        totalScore += weight;
+        currentQuestionIndex++;
+        loadQuestion();
+    }
+
+    function endGame() {
+        showScreen('screen-result');
+
+        // NORMALIZÁCIA SKÓRE (-1 do +1)
+        let normalizedScore = 0;
+        if (totalScore > 0) {
+            normalizedScore = totalScore / MAX_POS_SCORE;
+        } else if (totalScore < 0) {
+            normalizedScore = totalScore / Math.abs(MAX_NEG_SCORE);
+        }
+        normalizedScore = Math.max(-1, Math.min(1, normalizedScore));
+
+        // UKAZOVATEĽ NA ŠKÁLE
+        const percentScale = ((normalizedScore + 1) / 2) * 100;
+        document.getElementById('scale-pointer').style.left = `${percentScale}%`;
+
+        // VÝPOČET ZHORENIA ZÁPALKY (0 až 1)
+        let burnRatio = (normalizedScore - (-1)) / (0.8 - (-1));
+        burnRatio = Math.max(0, Math.min(1, burnRatio));
+
+        // Zápalka sa vizuálne skráti maximálne o 120px
+        const maxBurnPx = 120; 
+        const currentBurn = burnRatio * maxBurnPx;
+
+        // FYZICKÉ POSUNUTIE PRVKOV (Skracovanie)
+        document.getElementById('match-head').style.bottom = `${178 - currentBurn}px`;
+        document.getElementById('fx-container').style.bottom = `${168 - currentBurn}px`; // Zachovanie presného prelínania
+        document.getElementById('stick-burnt').style.height = `${currentBurn + 10}px`;
+
+        const matchHead = document.getElementById('match-head');
+        const fireWrapper = document.getElementById('fire-wrapper');
+        const smokeWrapper = document.getElementById('smoke-wrapper');
+        const resultText = document.getElementById('result-text');
+
+        if (normalizedScore > -0.4) {
+            matchHead.classList.add('is-burnt');
+        } else {
+            matchHead.classList.remove('is-burnt');
+        }
+
+        fireWrapper.classList.remove('aggressive');
+        
+        // ZÁVEREČNÁ LOGIKA A TEXTY
+        if (normalizedScore >= 0.8) {
+            fireWrapper.style.opacity = '0';
+            setTimeout(() => { fireWrapper.style.display = 'none'; }, 500);
+            
+            smokeWrapper.style.display = 'block';
+            setTimeout(() => { smokeWrapper.style.opacity = '1'; }, 100);
+
+            resultText.innerText = "Stav: Syndróm vyhorenia.\nZápalka dohorela. Si úplne bez energie a potrebuješ okamžitú odbornú pomoc a radikálnu zmenu v živote.";
+            resultText.style.color = "#ff4444";
+        } 
+        else if (normalizedScore >= 0.2) {
+            fireWrapper.style.display = 'flex';
+            smokeWrapper.style.display = 'none';
+            fireWrapper.classList.add('aggressive');
+            
+            const scaleFactor = 1.1 + (burnRatio * 0.5); 
+            fireWrapper.style.transform = `scale(${scaleFactor})`;
+            
+            resultText.innerText = "Stav: Blížiace sa vyhorenie.\nPlameň agresívne pohlcuje tvoje rezervy. Tvoj režim je neudržateľný, nutne potrebuješ spomaliť a nájsť si oddych!";
+            resultText.style.color = "#ffaa00";
+        } 
+        else if (normalizedScore > -0.6) {
+            fireWrapper.style.display = 'flex';
+            smokeWrapper.style.display = 'none';
+            fireWrapper.style.transform = `scale(1.1)`;
+            
+            resultText.innerText = "Stav: Mierne preťaženie.\nEšte to zvládaš, no oheň už naberá na sile a začína páliť drevo. Mal/a by si venovať viac pozornosti času pre seba.";
+            resultText.style.color = "#ffdd44";
+        } 
+        else {
+            fireWrapper.style.display = 'flex';
+            smokeWrapper.style.display = 'none';
+            fireWrapper.style.transform = `scale(0.85)`;
+            
+            resultText.innerText = "Stav: Výborný.\nTvoj pracovný režim je udržateľný. Zvládaš si určiť priority, udržať hranice a plameň horí stabilne a pokojne.";
+            resultText.style.color = "#00cc66";
+        }
+    }
+</script>
+
+</body>
+</html>
